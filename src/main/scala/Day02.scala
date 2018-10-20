@@ -1,3 +1,5 @@
+import scala.annotation.tailrec
+
 object Day02 {
   def first(input: String): String = {
     val pad = Array[Seq[Option[String]]](Array(Some("1"), Some("2"), Some("3")), Array(Some("4"), Some("5"), Some("6")), Array(Some("7"), Some("8"), Some("9")))
@@ -23,7 +25,7 @@ object Day02 {
     res.toString()
   }
 
-  def advance(input: String, pad: Pad): Pad = {
+  @tailrec def advance(input: String, pad: Pad): Pad = {
     if (input.length > 0) {
       input.head match {
         case 'U' => advance(input.tail, pad.up())
