@@ -1,4 +1,4 @@
-import scala.annotation.tailrec
+
 
 object Day09 {
   def first(input: String): Int = size(input.stripLineEnd)
@@ -18,17 +18,16 @@ object Day09 {
     }
   }
 
-  @tailrec def size2(input: String, currSize: Long = 0): Long = {
-    println(s"${input.length} $currSize")
+  def size2(input: String, currSize: Long = 0): Long = {
     input match {
       case reg(start, r, repSizeS, nS) =>
         val repSize = repSizeS.toInt
         val n = nS.toInt
         val startIdx = start.length + r.length
         val endIdx = startIdx + repSize
-        val rep = input.substring(startIdx, endIdx) * n
-        val remain = rep + input.substring(endIdx)
-        size2(remain, start.length + currSize)
+        val repLength = size2(input.substring(startIdx, endIdx)) * n
+        val remain = input.substring(endIdx)
+        size2(remain, start.length + repLength + currSize)
       case _ => input.length + currSize
     }
   }
@@ -53,7 +52,6 @@ object Day09 {
     test(second, "(27x12)(20x12)(13x14)(7x10)(1x12)A", 241920)
     test(second, "(25x3)(3x3)ABC(2x3)XY(5x2)PQRSTX(18x9)(3x2)TWO(5x7)SEVEN", 445)
 
-//    test(second, lines, 11797310782L)
     println(second(lines))
   }
 }
