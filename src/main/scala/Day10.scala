@@ -107,8 +107,6 @@ object Day10 {
     val source = io.Source.fromFile("src/main/resources/day10.txt")
     val lines = try source.mkString finally source.close()
 
-    def test[T] = (fun: String => T, input: String, expected: T) => assert(fun(input) == expected, input)
-
     val instructions =
       """value 5 goes to bot 2
         |bot 2 gives low to bot 1 and high to bot 0

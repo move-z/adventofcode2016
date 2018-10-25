@@ -1,5 +1,3 @@
-
-
 object Day09 {
   def first(input: String): Int = size(input.stripLineEnd)
 
