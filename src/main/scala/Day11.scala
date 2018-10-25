@@ -3,6 +3,31 @@ object Day11 {
 
   def second(input: String): Int = ???
 
+  class Item(val element: Char)
+  case class Generator(override val element: Char) extends Item(element)
+  case class Chip(override val element: Char) extends Item(element)
+
+  type Floor = Seq[Item]
+  case class Config(elevator: Int, floors: Seq[Floor]) {
+    lazy val curFloor = floors(elevator)
+  }
+
+  def next(config: Config): Seq[Config] = {
+    val curFloor = config.floors(config.elevator)
+    val tries = curFloor.combinations(2).filter(s => s(0).element == s(1).element) ++ curFloor.map(Seq(_))
+
+  }
+
+  def validConf(config: Config): Boolean = {
+    config.floors.forall(valid)
+  }
+
+  def valid(floor: Floor): Boolean = {
+    val gens = floor.filter(_.isInstanceOf[Generator]).asInstanceOf[Seq[Generator]]
+    val chips = floor.filter(_.isInstanceOf[Chip]).asInstanceOf[Seq[Chip]]
+    gens.isEmpty || chips.forall(c => gens.exists(_.element == c.element))
+  }
+
   def main(args: Array[String]): Unit = {
     val source = io.Source.fromFile("src/main/resources/day11.txt")
     val lines = try source.mkString finally source.close()
@@ -23,10 +48,13 @@ object Day11 {
 // microchips. Basically, an RTG is a highly radioactive rock that generates electricity through heat.
 //
 //The experimental RTGs have poor radiation containment, so they're dangerously radioactive. The chips are prototypes
-// and don't have normal radiation shielding, but they do have the ability to generate an electromagnetic radiation shield when powered. Unfortunately, they can only be powered by their corresponding RTG. An RTG powering a microchip is still dangerous to other microchips.
+// and don't have normal radiation shielding, but they do have the ability to generate an electromagnetic radiation
+// shield when powered. Unfortunately, they can only be powered by their corresponding RTG. An RTG powering a microchip
+// is still dangerous to other microchips.
 //
 //In other words, if a chip is ever left in the same area as another RTG, and it's not connected to its own RTG, the
-// chip will be fried. Therefore, it is assumed that you will follow procedure and keep chips connected to their corresponding RTG when they're in the same room, and away from other RTGs otherwise.
+// chip will be fried. Therefore, it is assumed that you will follow procedure and keep chips connected to their
+// corresponding RTG when they're in the same room, and away from other RTGs otherwise.
 //
 //These microchips sound very interesting and useful to your current activities, and you'd like to try to retrieve them.
 // The fourth floor of the facility has an assembling machine which can make a self-contained, shielded computer for you
