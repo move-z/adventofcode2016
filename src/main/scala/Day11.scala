@@ -10,6 +10,7 @@ object Day11 {
     do {
       count += 1
       configs = configs.flatMap(_.next())
+      assert(configs.nonEmpty)
     } while (!configs.exists(_.end))
 
     count
@@ -57,7 +58,8 @@ object Day11 {
     }
   }
 
-  private val seen = mutable.Set[Config]()
+  private val cache = mutable.Set[String]()
+
   case class Config(elevator: Int, floors: Seq[Floor]) {
     lazy val curFloor = floors(elevator)
 
@@ -70,9 +72,22 @@ object Day11 {
 
       val low = if (elevator > 0) tries(elevator - 1) else Nil
       val high = if (elevator < floors.length - 1) tries(elevator + 1) else Nil
-      val news = (low ++ high).filterNot(seen.contains)
-      seen ++= news
-      news
+      (low ++ high).filterNot(_.seen)
+    }
+
+    private lazy val sig: String = {
+      val elements = floors.zipWithIndex.flatMap(f => f._1.items.map((_, f._2))).groupBy(_._1.element)
+      val positions = elements.values.map(i => (i.find(_._1.isInstanceOf[Generator]).get._2, i.find(_._1.isInstanceOf[Chip]).get._2))
+      positions.map(p => s"$elevator.${p._1}.${p._2}").toSeq.sorted.mkString("-")
+    }
+
+    private def seen: Boolean = {
+      if (cache.contains(sig))
+        true
+      else {
+        cache += sig
+        false
+      }
     }
 
     lazy val end: Boolean = {
