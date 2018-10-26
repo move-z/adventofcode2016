@@ -1,38 +1,92 @@
 object Day12 {
-  def first(input: String): Boolean = ???
+  def first(input: String): Int = {
+    val instructions = input.split("\n")
+    state = State()
 
-  def second(input: String): Boolean = ???
+    while (state.ip >= 0 && state.ip < instructions.length) {
+      val instruction = Instruction.parse(instructions(state.ip))
+      state = instruction.apply()
+    }
 
-  private var regs = Map[Char, Int]()
+    state(Reg("a"))
+  }
+
+  def second(input: String): Int = {
+    val instructions = input.split("\n")
+    state = State().updated(Reg("c"), 1)
+
+    while (state.ip >= 0 && state.ip < instructions.length) {
+      val instruction = Instruction.parse(instructions(state.ip))
+      state = instruction.apply()
+      println(state)
+    }
+
+    state(Reg("a"))
+  }
+
+  var state = State()
+
+  case class State(regs: Map[Reg, Int] = Map(), ip: Int = 0) {
+    private val _regs = regs.withDefaultValue(0)
+
+    def apply(reg: Reg): Int = _regs(reg)
+
+    def updated(reg: Reg, value: Int): State = State(_regs.updated(reg, value), ip)
+
+    def move(offset: Int): State = State(_regs, ip + offset)
+  }
 
   abstract class RVal {
-    def value: Int
+    val value: Int
   }
 
-  case class Reg(name: Char) extends RVal {
-    override def value: Int = regs(name)
+  case class Reg(name: String) extends RVal {
+    override lazy val value: Int = state(this)
   }
 
-  case class Val(value: Int) extends RVal
+  case class Value(override val value: Int) extends RVal
 
-  abstract class Instruction {
-    def apply(): Map[Char, Int]
+  abstract sealed class Instruction {
+    def apply(): State
   }
 
-  case class Cpy(from: Char, to: Char) extends Instruction {
-    override def apply(): Map[Char, Int] = regs(to) = regs(from)
+  object Instruction {
+    private val cpy = "cpy (.+) (.+)".r
+    private val inc = "inc (.+)".r
+    private val dec = "dec (.+)".r
+    private val jnz = "jnz (.+) (.+)".r
+
+    def parse(in: String): Instruction = {
+      def parseRVal(in: String): RVal = {
+        if (in.forall(_.isDigit))
+          Value(in.toInt)
+        else
+          Reg(in)
+      }
+
+      in match {
+        case cpy(from, to) => Cpy(parseRVal(from), Reg(to))
+        case inc(reg) => Inc(Reg(reg))
+        case dec(reg) => Dec(Reg(reg))
+        case jnz(x, offset) => Jnz(parseRVal(x), offset.toInt)
+      }
+    }
   }
 
-  case class Inc(reg: Char) extends Instruction {
-    override def apply(): Map[Char, Int] = regs(reg) += 1
+  case class Cpy(from: RVal, to: Reg) extends Instruction {
+    override def apply(): State = state.updated(to, from.value).move(1)
   }
 
-  case class Dec(reg: Char) extends Instruction {
-    override def apply(): Map[Char, Int] = regs(reg) -= 1
+  case class Inc(reg: Reg) extends Instruction {
+    override def apply(): State = state.updated(reg, state(reg) + 1).move(1)
   }
 
-  case class Jnz(reg: Char) extends Instruction {
-    override def apply(): Map[Char, Int] = regs(reg) -= 1
+  case class Dec(reg: Reg) extends Instruction {
+    override def apply(): State = state.updated(reg, state(reg) - 1).move(1)
+  }
+
+  case class Jnz(x: RVal, offset: Int) extends Instruction {
+    override def apply(): State = if (x.value != 0) state.move(offset) else state.move(1)
   }
 
   def main(args: Array[String]): Unit = {
@@ -41,61 +95,16 @@ object Day12 {
 
     def test[T] = (fun: String => T, input: String, expected: T) => assert(fun(input) == expected, input)
 
-    test(first, lines, 42)
+    test(first, """cpy 41 a
+                  |inc a
+                  |inc a
+                  |dec a
+                  |jnz a 2
+                  |dec a
+                  |""".stripMargin, 42)
 
     println(first(lines))
-    test(first, lines, 318003)
+
+    println(second(lines))
   }
 }
-
-
-//You finally reach the top floor of this building: a garden with a slanted glass ceiling. Looks like there are no more
-// stars to be had.
-//
-//While sitting on a nearby bench amidst some tiger lilies, you manage to decrypt some of the files you extracted from
-// the servers downstairs.
-//
-//According to these documents, Easter Bunny HQ isn't just this building - it's a collection of buildings in the nearby
-// area. They're all connected by a local monorail, and there's another building not far from here! Unfortunately, being
-// night, the monorail is currently not operating.
-//
-//You remotely connect to the monorail control systems and discover that the boot sequence expects a password. The
-// password-checking logic (your puzzle input) is easy to extract, but the code it uses is strange: it's assembunny code
-// designed for the new computer you just assembled. You'll have to execute the code and get the password.
-//
-//The assembunny code you've extracted operates on four registers (a, b, c, and d) that start at 0 and can hold any
-// integer. However, it seems to make use of only a few instructions:
-//
-//    cpy x y copies x (either an integer or the value of a register) into register y.
-//    inc x increases the value of register x by one.
-//    dec x decreases the value of register x by one.
-//    jnz x y jumps to an instruction y away (positive means forward; negative means backward), but only if x is not
-// zero.
-//
-//The jnz instruction moves relative to itself: an offset of -1 would continue at the previous instruction, while an
-// offset of 2 would skip over the next instruction.
-//
-//For example:
-//
-//cpy 41 a
-//inc a
-//inc a
-//dec a
-//jnz a 2
-//dec a
-//
-//The above code would set register a to 41, increase its value by 2, decrease its value by 1, and then skip the last
-// dec a (because a is not zero, so the jnz a 2 skips it), leaving register a at 42. When you move past the last
-// instruction, the program halts.
-//
-//After executing the assembunny code in your puzzle input, what value is left in register a?
-//
-//Your puzzle answer was 318003.
-//--- Part Two ---
-//
-//As you head down the fire escape to the monorail, you notice it didn't start; register c needs to be initialized to
-// the position of the ignition key.
-//
-//If you instead initialize register c to be 1, what value is now left in register a?
-//
-//Your puzzle answer was 9227657.
