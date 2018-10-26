@@ -58,8 +58,6 @@ object Day11 {
     }
   }
 
-  private val cache = mutable.Set[String]()
-
   case class Config(elevator: Int, floors: Seq[Floor]) {
     lazy val curFloor = floors(elevator)
 
@@ -81,6 +79,8 @@ object Day11 {
       positions.map(p => s"$elevator.${p._1}.${p._2}").toSeq.sorted.mkString("-")
     }
 
+    private val cache = mutable.Set[String]()
+
     private def seen: Boolean = {
       if (cache.contains(sig))
         true
@@ -90,9 +90,7 @@ object Day11 {
       }
     }
 
-    lazy val end: Boolean = {
-      floors.reverse.tail.forall(_.items.isEmpty)
-    }
+    lazy val end: Boolean = floors.reverse.tail.forall(_.items.isEmpty)
   }
 
   def main(args: Array[String]): Unit = {
