@@ -1,27 +1,55 @@
 object Day12 {
   def first(input: String): Int = {
-    val instructions = input.split("\n")
+    val instructions = optimize(input.split("\n").map(Instruction.parse))
     state = State()
 
     while (state.ip >= 0 && state.ip < instructions.length) {
-      val instruction = Instruction.parse(instructions(state.ip))
-      state = instruction.apply()
+      val instruction = instructions(state.ip)
+      state = instruction.apply().move(1)
     }
 
     state(Reg("a"))
   }
 
   def second(input: String): Int = {
-    val instructions = input.split("\n")
+    val instructions = optimize(input.split("\n").map(Instruction.parse))
     state = State().updated(Reg("c"), 1)
 
     while (state.ip >= 0 && state.ip < instructions.length) {
-      val instruction = Instruction.parse(instructions(state.ip))
-      state = instruction.apply()
-      println(state)
+      val instruction = instructions(state.ip)
+      state = instruction.apply().move(1)
     }
 
     state(Reg("a"))
+  }
+
+  def optimize(instructions: Seq[Instruction]): Seq[Instruction] = {
+    case class AddPlaceHolder(index: Int, from: Reg, to: Reg)
+
+    val newInstruction = (0 until instructions.length - 2).map(i => (instructions(i), instructions(i + 1), instructions(i + 2)) match {
+      case (Inc(to), Dec(from), Jnz(cmp, -2)) if from == cmp => Some(AddPlaceHolder(i, from, to))
+      case _ => None
+    }).find(_.isDefined).flatten
+
+    if (newInstruction.isEmpty)
+      return instructions
+
+    val add = newInstruction.get
+
+    val head = instructions.slice(0, add.index)
+    val newHead = head.indices.map(i => head(i) match {
+        case Jnz(x, offset) if offset > add.index - i => Jnz(x, offset - 2)
+        case s => s
+      })
+    val h = newHead :+ Add(add.from, add.to)
+
+    val tail = instructions.slice(add.index + 3, instructions.length)
+    val newTail = tail.indices.map(i => tail(i) match {
+      case Jnz(x, offset) if -offset > i => Jnz(x, offset + 2)
+      case s => s
+    })
+
+    h ++ optimize(newTail)
   }
 
   var state = State()
@@ -34,14 +62,16 @@ object Day12 {
     def updated(reg: Reg, value: Int): State = State(_regs.updated(reg, value), ip)
 
     def move(offset: Int): State = State(_regs, ip + offset)
+
+    override def toString: String = s"[$ip] $regs"
   }
 
   abstract class RVal {
-    val value: Int
+    def value: Int
   }
 
   case class Reg(name: String) extends RVal {
-    override lazy val value: Int = state(this)
+    override def value: Int = state(this)
   }
 
   case class Value(override val value: Int) extends RVal
@@ -74,19 +104,23 @@ object Day12 {
   }
 
   case class Cpy(from: RVal, to: Reg) extends Instruction {
-    override def apply(): State = state.updated(to, from.value).move(1)
+    override def apply(): State = state.updated(to, from.value)
   }
 
   case class Inc(reg: Reg) extends Instruction {
-    override def apply(): State = state.updated(reg, state(reg) + 1).move(1)
+    override def apply(): State = state.updated(reg, reg.value + 1)
   }
 
   case class Dec(reg: Reg) extends Instruction {
-    override def apply(): State = state.updated(reg, state(reg) - 1).move(1)
+    override def apply(): State = state.updated(reg, reg.value - 1)
   }
 
   case class Jnz(x: RVal, offset: Int) extends Instruction {
-    override def apply(): State = if (x.value != 0) state.move(offset) else state.move(1)
+    override def apply(): State = if (x.value != 0) state.move(offset - 1) else state
+  }
+
+  case class Add(from: Reg, to: Reg) extends Instruction {
+    override def apply(): State = state.updated(to, to.value + from.value).updated(from, 0)
   }
 
   def main(args: Array[String]): Unit = {
