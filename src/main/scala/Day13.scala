@@ -15,7 +15,17 @@ object Day13 {
     count
   }
 
-  def second(input: Int): Boolean = ???
+  def second(input: Int): Int = {
+    val seen = mutable.Set[Office]()
+    var current = Office(input) :: Nil
+
+    1 to 50 foreach { _ =>
+      seen ++= current
+      current = current.flatMap(_.next()).distinct.filterNot(seen.contains)
+    }
+
+    seen.size
+  }
 
   case class Office(seed: Int, curx: Int = 1, cury: Int = 1) {
     def next(): Seq[Office] = {
@@ -42,11 +52,8 @@ object Day13 {
   def main(args: Array[String]): Unit = {
     assert(first(10, 7, 4) == 11)
 
-    assert(first(1350) == 92)
+    println(first(1350))
+
+    println(second(1350))
   }
 }
-
-
-//How many locations (distinct x,y coordinates, including your starting location) can you reach in at most 50 steps?
-//
-//Your puzzle answer was 124.
