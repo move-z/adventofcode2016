@@ -1,52 +1,90 @@
+import java.security.MessageDigest
+
+import scala.annotation.tailrec
+import scala.collection.mutable
+
 object Day14 {
-  def first(input: String): Boolean = ???
+  def first(input: String): Int = {
+    Finder(md5).search(input)
+  }
 
-  def second(input: String): Boolean = ???
+  def second(input: String): Int = {
+    Finder(md52016).search(input)
+  }
 
+  lazy private val digest = MessageDigest.getInstance("MD5")
+  private val md5Cache = mutable.Map[String, String]()
+  def md5(s: String): String = {
+    if (md5Cache.contains(s)) {
+      md5Cache(s)
+    } else {
+      val m = digest.digest(s.getBytes).map("%02x".format(_)).mkString
+      md5Cache(s) = m
+      m
+    }
+  }
+
+  def md52016(s: String): String = {
+    @tailrec def inner(s: String, r: Int = 2016): String = {
+      val m = md5(s)
+      if (r == 0)
+        m
+      else
+        inner(m, r - 1)
+    }
+    inner(s)
+  }
+
+  case class Finder(keyer: String => String) {
+    def search(input: String): Int = {
+      nextNKeys(input, 64)
+    }
+
+    @tailrec private def nextNKeys(s: String, n: Int, startIndex: Int = 0): Int = {
+      if (n == 0)
+        startIndex - 1
+      else {
+        val k = nextKey(s, startIndex)
+        println(k)
+        nextNKeys(s, n - 1, k + 1)
+      }
+    }
+
+    @tailrec private def nextKey(s: String, index: Int): Int = {
+      if (key(s, index))
+        index
+      else
+        nextKey(s, index + 1)
+    }
+
+    private def key(input: String, index: Int): Boolean = {
+      val k = keyer(input + index)
+
+      (0 until k.length - 2)
+        .find(i => k.slice(i, i + 3).distinct.length == 1)
+        .map(i => k.substring(i, i + 1) * 5)
+        .flatMap(rep => (1 to 1000).find(i => {
+          keyer(input + (index + i)).contains(rep)
+        }))
+        .nonEmpty
+    }
+  }
 
   def main(args: Array[String]): Unit = {
     def test[T] = (fun: String => T, input: String, expected: T) => assert(fun(input) == expected, input)
 
-    test(first, lines, true)
+    test(first, "abc", 22728)
+
+    println(first("qzyelonm"))
+
+    test(second, "abc", 22551)
+
+    println(second("qzyelonm"))
+    test(second, "qzyelonm", 20864)
   }
 }
 
 
-//In order to communicate securely with Santa while you're on this mission, you've been using a one-time pad that you
-// generate using a pre-agreed algorithm. Unfortunately, you've run out of keys in your one-time pad, and so you need to
-// generate some more.
-//
-//To generate keys, you first get a stream of random data by taking the MD5 of a pre-arranged salt (your puzzle input)
-// and an increasing integer index (starting with 0, and represented in decimal); the resulting MD5 hash should be
-// represented as a string of lowercase hexadecimal digits.
-//
-//However, not all of these MD5 hashes are keys, and you need 64 new keys for your one-time pad. A hash is a key only
-// if:
-//
-//It contains three of the same character in a row, like 777. Only consider the first such triplet in a hash.
-//One of the next 1000 hashes in the stream contains that same character five times in a row, like 77777.
-//
-//Considering future hashes for five-of-a-kind sequences does not cause those hashes to be skipped; instead, regardless
-// of whether the current hash is a key, always resume testing for keys starting with the very next hash.
-//
-//For example, if the pre-arranged salt is abc:
-//
-//  The first index which produces a triple is 18, because the MD5 hash of abc18 contains ...cc38887a5.... However,
-// index 18 does not count as a key for your one-time pad, because none of the next thousand hashes (index 19 through
-// index 1018) contain 88888.
-//The next index which produces a triple is 39; the hash of abc39 contains eee. It is also the first key: one of the
-// next thousand hashes (the one at index 816) contains eeeee.
-//None of the next six triples are keys, but the one after that, at index 92, is: it contains 999 and index 200 contains
-// 99999.
-//Eventually, index 22728 meets all of the criteria to generate the 64th key.
-//
-//  So, using our example salt of abc, index 22728 produces the 64th key.
-//
-//  Given the actual salt in your puzzle input, what index produces your 64th one-time pad key?
-//
-//Your puzzle answer was 15168.
-//--- Part Two ---
-//
 //Of course, in order to make this process even more secure, you've also implemented key stretching.
 //
 //  Key stretching forces attackers to spend more time generating hashes. Unfortunately, it forces everyone else to
