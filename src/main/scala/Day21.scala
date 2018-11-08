@@ -7,7 +7,7 @@ object Day21 {
 
   def second(input: String): String = {
     val arr = "fbgdceah".toCharArray
-    input.split("\n").foreach(apply(new Buffer(arr), _))
+    input.split("\n").reverseIterator.foreach(unapply(new Buffer(arr), _))
     arr.mkString
   }
 
@@ -47,23 +47,22 @@ object Day21 {
       split._2.indices.foreach(i => arr(i) = split._2(i))
     }
     def rotateP(l: Char): Unit = {
-      val idx = arr.indexOf(l) + 1
-      val n = if (idx > 4) idx + 1 else idx
-      rotateRight(n)
+      val n = arr.indexOf(l) + 1
+      val idx = if (n > 4) n + 1 else n
+      rotateRight(idx)
     }
-    // 1 2 3 4 5 6 7 8
-    // 0 -> 1
-    // 1 -> 2
-    // 2 -> 3
-    // 3 -> 4
-    // 4 -> 6
-    // 5 -> 7
-    // 6 -> 8
-    // 7 -> 9
     def reverseRotateP(l: Char): Unit = {
-      val idx = arr.indexOf(l) + 1
-      val n = if (idx > 4) idx + 1 else idx
-      rotateRight(n)
+      val idx = arr.indexOf(l) match {
+        case 0 => 1
+        case 1 => 1
+        case 2 => 6
+        case 3 => 2
+        case 4 => 7
+        case 5 => 3
+        case 6 => 0
+        case 7 => 4
+      }
+      rotateLeft(idx)
     }
     def reverse(from: Int, to: Int): Unit = {
       val r = (to to from by -1).map(arr(_))
@@ -97,9 +96,9 @@ object Day21 {
       case swapL(a, b) => buf.swapL(a.head, b.head)
       case rotateLeft(n) => buf.rotateRight(n.toInt)
       case rotateRight(n) => buf.rotateLeft(n.toInt)
-      case rotateP(l) => buf.rotateP(l.head)
+      case rotateP(l) => buf.reverseRotateP(l.head)
       case reverse(from, to) => buf.reverse(from.toInt, to.toInt)
-      case move(from, to) => buf.move(from.toInt, to.toInt)
+      case move(from, to) => buf.move(to.toInt, from.toInt)
     }
   }
 
@@ -112,8 +111,3 @@ object Day21 {
     println(second(lines))
   }
 }
-
-//You scrambled the password correctly, but you discover that you can't actually modify the password file on the system.
-// You'll need to un-scramble one of the existing passwords by reversing the scrambling process.
-//
-//What is the un-scrambled version of the scrambled password fbgdceah?
