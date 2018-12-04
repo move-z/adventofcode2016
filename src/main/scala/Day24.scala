@@ -5,34 +5,43 @@ object Day24 {
     val (floor, pois) = parse(input.split("\n"))
     val startPos = pois.find(e => e._2 == '0').map(_._1).get
 
-    def open(coord: Coord) = {
+    F(floor).findPath(Seq((startPos, pois - startPos)), _._2.isEmpty)._2
+  }
+
+  def second(input: String): Int = {
+    val (floor, pois) = parse(input.split("\n"))
+    val startPos = pois.find(e => e._2 == '0').map(_._1).get
+
+    F(floor).findPath(Seq((startPos, pois - startPos)), s => s._1 == startPos && s._2.isEmpty)._2
+  }
+
+  case class F(floor: Floor) {
+    private def open(coord: Coord) = {
       val x = coord._1
       val y = coord._2
       y >= 0 && y < floor.length && x >= 0 && x < floor(y).length && floor(y)(x)
     }
 
-    def nextStates(curr: State) = {
+    private def nextStates(curr: State) = {
       val c = curr._1
       val nextPos = Seq((c._1 - 1, c._2), (c._1 + 1, c._2), (c._1, c._2 - 1), (c._1, c._2 + 1)).filter(open)
       nextPos.map(c => (c, curr._2 - c))
     }
 
     type State = (Coord, Pois)
-    var cache = Set[State]((startPos, pois))
-    @tailrec def findPath(curr: Seq[State], dist: Int = 0): Int = {
-      if (curr.exists(_._2.isEmpty))
-        dist
+    private var cache = Set[State]()
+    @tailrec final def findPath(curr: Seq[State], end: State => Boolean, dist: Int = 0): (Seq[State], Int) = {
+      val tgt = curr.filter(end)
+      if (tgt.nonEmpty)
+        (tgt, dist)
       else {
         val next = curr.flatMap(nextStates).distinct.filterNot(cache.contains(_))
         cache ++= next
-        findPath(next, dist + 1)
+        findPath(next, end, dist + 1)
       }
     }
 
-    findPath(Seq((startPos, pois - startPos)))
   }
-
-  def second(input: String): Boolean = ???
 
   def parse(lines: Seq[String]): (Floor, Pois) = {
     var pois = Map[Coord, Char]()
@@ -70,6 +79,8 @@ object Day24 {
         |###########""".stripMargin, 14)
 
     println(first(lines))
+
+    println(second(lines))
   }
 }
 
